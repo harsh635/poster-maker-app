@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">PosterMaker</string>
+    <string name="title_activity_main">PosterMaker</string>
+    <string name="package_name">com.example.postermaker</string>
+    <string name="custom_url_scheme">com.example.postermaker</string>
+</resources>

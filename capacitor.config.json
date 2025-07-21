@@ -1,0 +1,5 @@
+{
+  "appId": "com.example.postermaker",
+  "appName": "PosterMaker",
+  "webDir": "frontend/dist"
+}
