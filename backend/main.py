@@ -151,6 +151,10 @@ class UserLoginRequest(BaseModel):
 
 # ---------------------- ROUTES ------------------------
 
+@app.get("/")
+def read_root():
+    return {"Hello": "World"}
+
 @app.post("/save_poster/")
 async def save_poster(poster: PosterModel):
     result = await poster_collection.insert_one(poster.dict())
