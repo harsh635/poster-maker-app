@@ -465,17 +465,7 @@ async def verify_payment(data: dict = Body(...)):
 
     return {"message": "Subscription verified", "expiry": expiry}
 
-from pymongo import MongoClient
-import certifi
 
-uri = "mongodb+srv://harshdeepdadiyal1234:harsh123@cluster0.lblyc5z.mongodb.net/?retryWrites=true&w=majority"
-
-client = MongoClient(uri, tlsCAFile=certifi.where())
-
-try:
-    print(client.list_database_names())
-except Exception as e:
-    print("Connection failed:", e)
 
 
 app.include_router(router)
