@@ -22,7 +22,7 @@ import hmac
 import hashlib
 from starlette.responses import Response
 from starlette.staticfiles import StaticFiles
-
+from typing import Optional
 # ---------------------- LOAD ENV ------------------------
 load_dotenv()
 
@@ -30,7 +30,7 @@ load_dotenv()
 MONGO_URI = os.getenv("MONGO_URL")
 DB_NAME = os.getenv("DB_NAME", "poster_db")
 UPLOAD_FOLDER = os.getenv("UPLOAD_FOLDER", "uploads")
-ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "https://joharjharkhand.net/").split(",")
+ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS").split(",")
 ADMIN_USERNAME = os.getenv("ADMIN_USERNAME", "admin")
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "admin")
 RAZORPAY_KEY_ID = os.getenv("RAZORPAY_KEY_ID")
@@ -112,6 +112,8 @@ class RegisterModel(BaseModel):
     name: str
     email: str
     address: str
+    post: str
+    description: str
     mobile: str
     password: str
     image_url: str = ""
@@ -177,39 +179,46 @@ async def login_admin(login_data: AdminLoginRequest):
         "username": admin["username"],
         "role": admin["role"]
     }
+
 @app.post("/templates/upload")
 async def upload_template(
     request: Request,
     label: str = Form(...),
     occasion: str = Form(...),
-    default_title: str = Form(...),
-    default_subtitle: str = Form(...),
+    default_title: str = Form(""),      # Default empty string if not passed
+    default_subtitle: str = Form(""),
     image: UploadFile = File(...)
 ):
-    ext = image.filename.split(".")[-1].lower()
-    if ext not in ["jpg", "jpeg", "png", "webp"]:
-        raise HTTPException(status_code=400, detail="Unsupported file format")
+    try:
+        ext = image.filename.split(".")[-1].lower()
+        if ext not in ["jpg", "jpeg", "png", "webp"]:
+            raise HTTPException(status_code=400, detail="Unsupported file format")
 
-    filename = f"{uuid4()}.{ext}"
-    filepath = os.path.join(UPLOAD_FOLDER, filename)
+        filename = f"{uuid4()}.{ext}"
+        filepath = os.path.join(UPLOAD_FOLDER, filename)
 
-    with open(filepath, "wb") as f:
-        content = await image.read()
-        f.write(content)
+        with open(filepath, "wb") as f:
+            content = await image.read()
+            f.write(content)
 
-    image_url = f"/uploads/{filename}"
+        image_url = f"/uploads/{filename}"
 
-    new_template = {
-        "label": label,
-        "occasion": occasion,
-        "image": image_url,
-        "default_title": default_title,
-        "default_subtitle": default_subtitle
-    }
+        # Build template dict conditionally
+        new_template = {
+            "label": label,
+            "occasion": occasion,
+            "image": image_url,
+        }
 
-    result = await template_collection.insert_one(new_template)
-    return {"message": "Template Added", "template_id": str(result.inserted_id)}
+        if occasion != "Good Morning":
+            new_template["default_title"] = default_title
+            new_template["default_subtitle"] = default_subtitle
 
+        result = await template_collection.insert_one(new_template)
+        return {"message": "Template Added", "template_id": str(result.inserted_id)}
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/templates")
@@ -224,7 +233,8 @@ async def get_templates():
                 "image": t.get("image", ""),
                 "occasion": t.get("occasion", ""),
                 "default_title": t.get("default_title", ""),
-                "default_subtitle": t.get("default_subtitle", "")
+                "default_subtitle": t.get("default_subtitle", ""),
+                "date": t.get("date", "")
             })
         return templates
     except Exception as e:
@@ -250,15 +260,21 @@ async def update_template(
     occasion: str = Form(...),
     default_title: str = Form(...),
     default_subtitle: str = Form(...),
+    date: Optional[str] = Form(''),
     image: UploadFile = None
 ):
     try:
         update_data = {
             "label": label,
             "occasion": occasion,
-            "default_title": default_title,
-            "default_subtitle": default_subtitle
         }
+
+        if occasion != "Good Morning":
+            update_data["default_title"] = default_title
+            update_data["default_subtitle"] = default_subtitle
+        else:
+            update_data["default_title"] = ""
+            update_data["default_subtitle"] = ""
 
         if image:
             filename = f"{uuid.uuid4()}.png"
@@ -268,16 +284,18 @@ async def update_template(
             update_data["image"] = f"/uploads/{filename}"
 
         result = await template_collection.update_one(
-    {"_id": ObjectId(template_id)},
-    {"$set": update_data}
-)
+            {"_id": ObjectId(template_id)},
+            {"$set": update_data}
+        )
 
         if result.matched_count == 0:
             raise HTTPException(status_code=404, detail="Template not found")
 
         return {"message": "Template updated successfully"}
+
     except PyMongoError as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 #Registration Route
 @app.post("/auth/register")
@@ -285,25 +303,26 @@ async def register_user(
     name: str = Form(...),
     email: str = Form(...),
     address: str = Form(...),
+    post: str = Form(...), 
+    description: str = Form(...),
     mobile: str = Form(...),
     password: str = Form(...),
     image: UploadFile = File(...)
 ):
+    print("POSTED FIELDS:", post, description) 
     # Check if user already exists
     existing = await user_collection.find_one({"email": email})
     if existing:
         raise HTTPException(status_code=400, detail="User already exists")
 
-    # Validate image type
+    # Validate image
     ext = image.filename.split(".")[-1].lower()
     if ext not in ["jpg", "jpeg", "png", "webp"]:
         raise HTTPException(status_code=400, detail="Unsupported file format")
 
-    # Save image to /uploads/users/
+    # Save image
     filename = f"{uuid4()}.{ext}"
-    user_dir = os.path.join(UPLOAD_FOLDER, "users")
-    filepath = os.path.join(user_dir, filename)
-
+    filepath = os.path.join(UPLOAD_FOLDER, "users", filename)
     with open(filepath, "wb") as f:
         f.write(await image.read())
 
@@ -313,20 +332,28 @@ async def register_user(
         "name": name,
         "email": email,
         "address": address,
+        "post": post,
+        "description": description,
         "mobile": mobile,
-        "password": hash_password(password),  # Store hashed password
+        "password": hash_password(password),
         "profile_image_url": image_url
     }
 
-    await user_collection.insert_one(user)
+    result = await user_collection.insert_one(user)
+
     return {
-    "message": "Registration successful",
-    "user": {
-        "name": name,
-        "email": email,
-        "profile_image_url": image_url
+        "message": "Registration successful",
+        "user": {
+            "id": str(result.inserted_id),
+            "name": name,
+            "email": email,
+            "address": address,
+            "post": post,
+            "description": description,
+            "mobile": mobile,
+            "profile_image_url": image_url
+        }
     }
-}
 
 
 
@@ -371,6 +398,9 @@ async def login_user(request: Request, login_data: UserLoginRequest):
             "name": user["name"],
             "email": user["email"],
             "profile_image_url": user.get("profile_image_url", ""),
+            "post": user.get("post", ""), 
+            "description": user.get("description", ""),  # NEW
+            "mobile":user.get("mobile", ""),
             "is_subscribed": is_subscribed
         }
     }
@@ -386,6 +416,8 @@ async def get_users():
             "name": user["name"],
             "email": user["email"],
             "address": user["address"],
+            "post": user.get("post", ""), 
+            "description": user.get("description", ""),  
             "mobile": user["mobile"],
             "profile_image_url": user.get("profile_image_url", ""),
             "is_subscribed": user.get("is_subscribed", False),
