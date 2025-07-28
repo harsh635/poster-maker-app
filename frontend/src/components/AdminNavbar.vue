@@ -22,6 +22,13 @@
           <li class="nav-item" v-if="isSuperAdmin">
             <router-link to="/admin/users" class="nav-link">User Statistics</router-link>
           </li>
+          <li class="nav-item" v-if="isSuperAdmin">
+  <a class="nav-link cursor-pointer" @click="openGenerateModal">
+    <i class="fas fa-key me-1"></i> Generate Code
+  </a>
+</li>
+
+
           <li class="nav-item dropdown" v-if="admin">
             <img
               :src="DEFAULT_AVATAR"
@@ -81,11 +88,21 @@ document.addEventListener('click', (e) => {
     showDropdown.value = false
   }
 })
+
+const emit = defineEmits(['open-generate-modal'])
+
+function openGenerateModal() {
+  emit('open-generate-modal')
+}
+
 </script>
 
 <style scoped>
 .nav-link {
   font-weight: 500;
+}
+.cursor-pointer {
+  cursor: pointer;
 }
 
 .profile-pic {

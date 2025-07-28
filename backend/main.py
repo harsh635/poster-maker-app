@@ -24,6 +24,11 @@ from starlette.responses import Response
 from starlette.staticfiles import StaticFiles
 from typing import Optional
 import uvicorn
+import cloudinary
+import cloudinary.uploader
+import random
+import string
+from utils.email_utils import send_email
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000))
@@ -41,11 +46,14 @@ ADMIN_USERNAME = os.getenv("ADMIN_USERNAME", "admin")
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "admin")
 RAZORPAY_KEY_ID = os.getenv("RAZORPAY_KEY_ID")
 RAZORPAY_KEY_SECRET = os.getenv("RAZORPAY_KEY_SECRET")
-
+# Cloudinary config from .env
+cloudinary.config(
+    cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
+    api_key=os.getenv("CLOUDINARY_API_KEY"),
+    api_secret=os.getenv("CLOUDINARY_API_SECRET")
+)
 # Ensure uploads folder exists
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-os.makedirs(os.path.join(UPLOAD_FOLDER, "users"), exist_ok=True)
 
 razorpay_client = razorpay.Client(auth=(RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET))
 
@@ -81,9 +89,6 @@ class CORSEnabledStaticFiles(StaticFiles):
         response.headers["Access-Control-Allow-Origin"] = "*"
         return response
 
-# ---------------------- STATIC FILES ------------------------
-app.mount("/uploads", CORSEnabledStaticFiles(directory="uploads"), name="uploads")
-app.mount("/uploads/users", CORSEnabledStaticFiles(directory=os.path.join(UPLOAD_FOLDER, "users")), name="user_uploads")
 
 
 
@@ -200,14 +205,8 @@ async def upload_template(
         if ext not in ["jpg", "jpeg", "png", "webp"]:
             raise HTTPException(status_code=400, detail="Unsupported file format")
 
-        filename = f"{uuid4()}.{ext}"
-        filepath = os.path.join(UPLOAD_FOLDER, filename)
-
-        with open(filepath, "wb") as f:
-            content = await image.read()
-            f.write(content)
-
-        image_url = f"/uploads/{filename}"
+        upload_result = cloudinary.uploader.upload(await image.read(), folder="templates")
+        image_url = upload_result["secure_url"]
 
         # Build template dict conditionally
         new_template = {
@@ -283,11 +282,8 @@ async def update_template(
             update_data["default_subtitle"] = ""
 
         if image:
-            filename = f"{uuid.uuid4()}.png"
-            filepath = f"uploads/{filename}"
-            with open(filepath, "wb") as buffer:
-                shutil.copyfileobj(image.file, buffer)
-            update_data["image"] = f"/uploads/{filename}"
+            upload_result = cloudinary.uploader.upload(await image.read(), folder="templates")
+            update_data["image"] = upload_result["secure_url"]
 
         result = await template_collection.update_one(
             {"_id": ObjectId(template_id)},
@@ -327,12 +323,8 @@ async def register_user(
         raise HTTPException(status_code=400, detail="Unsupported file format")
 
     # Save image
-    filename = f"{uuid4()}.{ext}"
-    filepath = os.path.join(UPLOAD_FOLDER, "users", filename)
-    with open(filepath, "wb") as f:
-        f.write(await image.read())
-
-    image_url = f"/uploads/users/{filename}"
+    upload_result = cloudinary.uploader.upload(await image.read(), folder="users")
+    image_url = upload_result["secure_url"]
 
     user = {
         "name": name,
@@ -407,7 +399,10 @@ async def login_user(request: Request, login_data: UserLoginRequest):
             "post": user.get("post", ""), 
             "description": user.get("description", ""),  # NEW
             "mobile":user.get("mobile", ""),
-            "is_subscribed": is_subscribed
+            "is_subscribed": is_subscribed,
+            "subscription_expiry": user.get("subscription_expiry"),
+        "is_vip": user.get("is_vip", False),
+        "vip_expiry": user.get("vip_expiry")
         }
     }
 
@@ -427,7 +422,9 @@ async def get_users():
             "mobile": user["mobile"],
             "profile_image_url": user.get("profile_image_url", ""),
             "is_subscribed": user.get("is_subscribed", False),
-            "subscription_expiry": user.get("subscription_expiry").isoformat() if user.get("subscription_expiry") else None
+            "subscription_expiry": user.get("subscription_expiry").isoformat() if user.get("subscription_expiry") else None,
+            "is_vip": user.get("is_vip", False),
+    "vip_expiry": user.get("vip_expiry").isoformat() if user.get("vip_expiry") else None
         })
     return JSONResponse(content=users)
 
@@ -448,7 +445,7 @@ async def delete_user(user_id: str):
 @app.post("/create-order")
 async def create_order(data: dict = Body(...)):
     try:
-        amount = data.get("amount", 19900)  # ₹199 in paise
+        amount = data.get("amount", 9900)  # ₹199 in paise
         if not amount or amount <= 0:
             raise HTTPException(status_code=400, detail="Invalid amount")
 
@@ -503,7 +500,101 @@ async def verify_payment(data: dict = Body(...)):
 
     return {"message": "Subscription verified", "expiry": expiry}
 
+@router.post("/admin/generate-vip-code")
+async def generate_vip_code(data: dict):
+    code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+    email = data.get("email")
+    admin_email = data.get("admin_email")
+    expiry = datetime.utcnow() + timedelta(days=30)
 
+    await db.vip_codes.insert_one({
+        "code": code,
+        "created_by": admin_email,
+        "email": email,
+        "created_at": datetime.utcnow(),
+        "expires_at": expiry,
+        "used": False,
+        "used_by": None,
+        "used_at": None,
+        "revoked": False
+    })
+
+    # ✅ Send the code via email
+    subject = "Your VIP Access Code"
+    body = f"""
+    Hello,
+
+    You've been granted VIP access on Johar Jharkhand Poster App.
+
+    🔐 Code: {code}
+    🕓 Valid Until: {expiry.strftime('%d %b %Y')}
+    ⚠️ Note: This code can be used only once.
+
+    Use this code in the app to activate your subscription.
+
+    Regards,
+    Johar Jharkhand Team
+    """
+    await send_email(email, subject, body)
+
+    return {"code": code, "expiry": expiry.isoformat()}
+
+
+@router.post("/admin/revoke-vip")
+async def revoke_vip(data: dict):
+    email = data.get("email")
+    await db.users.update_one(
+        {"email": email},
+        {
+            "$set": {
+                "is_vip": False,
+                "is_subscribed": False,
+                "vip_expiry": None,
+                "subscription_expiry": None
+            }
+        }
+    )
+    return {"message": "VIP revoked"}
+
+
+from fastapi import APIRouter, HTTPException
+from datetime import datetime, timedelta
+from bson import ObjectId
+
+@router.post("/apply-vip-code")
+async def apply_vip_code(data: dict):
+    email = data.get("email")
+    code = data.get("code")
+
+    vip_doc = await db.vip_codes.find_one({
+        "code": code,
+        "email": email,
+        "used": False,
+        "revoked": False,
+        "expires_at": {"$gt": datetime.utcnow()}
+    })
+
+    if not vip_doc:
+        raise HTTPException(status_code=400, detail="Invalid or expired VIP code")
+
+    # ✅ Delete the VIP code after use
+    await db.vip_codes.delete_one({ "_id": vip_doc["_id"] })
+
+    # ✅ Grant VIP access
+    expiry = datetime.utcnow() + timedelta(days=30)
+    await db.users.update_one(
+        { "email": email },
+        {
+            "$set": {
+                "is_vip": True,
+                "is_subscribed": True,
+                "vip_expiry": expiry,
+                "subscription_expiry": expiry
+            }
+        }
+    )
+
+    return { "success": True, "vip_expiry": expiry.isoformat() }
 
 
 app.include_router(router)

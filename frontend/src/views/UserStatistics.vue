@@ -1,6 +1,8 @@
 <template>
   <div>
-    <AdminNavbar />
+    <AdminNavbar @open-generate-modal="openGenerateModal" />
+    <GenerateVipCodeModal ref="vipModalRef" />
+
     <div class="container mt-5">
       <!-- Heading -->
       <div class="d-flex justify-content-between align-items-center mb-4">
@@ -36,6 +38,8 @@
               <th>Email</th>
               <th>Mobile</th>
               <th>Address</th>
+              <th>Post/Position</th>
+              <th>Description</th>
               <th>Subscription</th>
               <th>Expiry</th>
             </tr>
@@ -65,15 +69,27 @@
                <td>{{ user.post }}</td>
                 <td>{{ user.description }}</td>
 <td>
-  <span v-if="user.is_subscribed" class="text-success fw-semibold">Active</span>
+  <span v-if="user.is_vip" class="text-warning fw-semibold d-flex flex-column align-items-center">
+    <div>
+      <span class="badge bg-warning text-dark ms-1">VIP</span>
+      <button class="btn btn-sm btn-danger ms-2" @click.stop="revokeVIP(user)">Revoke</button>
+    </div>
+  </span>
+  <span v-else-if="user.is_subscribed" class="text-success fw-semibold">Active</span>
   <span v-else class="text-muted">Not Subscribed</span>
 </td>
+      
 <td>
-  <span v-if="user.is_subscribed && user.subscription_expiry">
+  <span v-if="user.is_vip && user.vip_expiry">
+    {{ formatDate(user.vip_expiry) }}
+  </span>
+  <span v-else-if="user.is_subscribed && user.subscription_expiry">
     {{ formatDate(user.subscription_expiry) }}
   </span>
   <span v-else class="text-muted">—</span>
-</td>         
+</td>
+
+
             </tr>
           </tbody>
         </table>
@@ -129,7 +145,8 @@ import { ref, onMounted, computed } from 'vue'
 import axios from 'axios'
 import { toast } from 'vue3-toastify'
 import AdminNavbar from '../components/AdminNavbar.vue'
-
+import GenerateVipCodeModal from '../components/GenerateVipCodeModal.vue'
+import { useUser } from '../useUser'
 const API = import.meta.env.VITE_API_URL
 const users = ref([])
 const searchTerm = ref('')
@@ -137,6 +154,8 @@ const showUserModal = ref(false)
 const selectedUser = ref({})
 const showDeleteModal = ref(false)
 const userToDelete = ref(null)
+const vipModalRef = ref(null)
+const { user: currentUser, setUser } = useUser()
 const fetchUsers = async () => {
   try {
     const res = await axios.get(`${API}/users`)
@@ -195,6 +214,17 @@ function confirmDelete(user) {
   showDeleteModal.value = true
 }
 
+import { nextTick } from 'vue'
+
+function openGenerateModal() {
+  nextTick(() => {
+    if (vipModalRef.value?.open) {
+      vipModalRef.value.open()
+    } else {
+      toast.error("Modal not available yet.")
+    }
+  })
+}
 async function deleteUser() {
   const id = userToDelete.value.id 
   if (!id) return toast.error("Invalid user ID")
@@ -225,6 +255,26 @@ function formatDate(dateStr) {
     year: 'numeric'
   })
 }
+async function revokeVIP(user) {
+  try {
+    await axios.post(`${API}/admin/revoke-vip`, { email: user.email })
+    toast.success("VIP access revoked")
+    fetchUsers()
+       if (currentUser.value?.email === user.email) {
+      const updatedUser = {
+        ...currentUser.value,
+        is_vip: false,
+        vip_expiry: null,
+        is_subscribed: false,
+        subscription_expiry: null
+      }
+      setUser(updatedUser)
+    }
+  } catch (err) {
+    toast.error("Failed to revoke VIP")
+  }
+}
+
 
 onMounted(fetchUsers)
 </script>

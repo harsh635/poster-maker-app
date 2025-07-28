@@ -7,23 +7,23 @@
       class="poster-canvas"
     />
 
-     <input
+     <!-- <input
     type="file"
     accept="image/*"
     ref="fileInputRef"
     class="hidden-input"
     @change="handleProfileChange"
-  />
+  /> -->
 
   <!-- Context menu for profile image -->
-    <div
+    <!-- <div
       v-if="showProfileMenu"
       ref="profileMenuRef"
       class="profile-context-menu"
       :style="{ left: `${menuX}px`, top: `${menuY}px` }"
     >
       <button @click="triggerProfileUpload">📁 Change Profile Image</button>
-    </div>
+    </div> -->
 
     <div
   v-if="showToolbar && selectedText"
@@ -130,24 +130,22 @@ const windowWidth = ref(typeof window !== 'undefined' ? window.innerWidth : 1024
 // Responsive canvas dimensions
 const canvasWidth = computed(() => {
   const baseWidth = props.width
-  if (windowWidth.value < 768) {
-    return Math.min(windowWidth.value - 60, baseWidth * 0.8)
-  } else if (windowWidth.value < 1024) {
-    return Math.min(baseWidth * 0.9, 450)
+  if (windowWidth.value <= 768) {
+     return  500
+  } else if (windowWidth.value <= 1024) {
+    return 580
   }
-  return baseWidth
+  return 580
 })
 
 const canvasHeight = computed(() => {
   const baseHeight = props.height
-  if (windowWidth.value < 768) {
-    const aspectRatio = baseHeight / props.width
-    return canvasWidth.value * aspectRatio
-  } else if (windowWidth.value < 1024) {
-    const aspectRatio = baseHeight / props.width
-    return canvasWidth.value * aspectRatio
+  if (windowWidth.value <= 768) {
+    return 500;
+  } else if (windowWidth.value <= 1024) {
+    return 580
   }
-  return baseHeight
+  return 580
 })
 const debouncedUpdateFontSize = debounce(() => {
   if (selectedText.value) {
@@ -735,14 +733,26 @@ function exportAsPNG() {
   link.click()
   document.body.removeChild(link)
 }
+
 async function sharePoster() {
-  if (!canvas) return
+  if (!canvas) {
+    alert("Canvas not ready.")
+    return
+  }
 
-  const blob = await new Promise((resolve) =>
-    canvas.toBlob((blob) => resolve(blob), 'image/png')
-  )
+  const dataUrl = canvas.toDataURL({
+    format: 'png',
+    quality: 1.0,
+    multiplier: 2 // optional for higher resolution
+  })
 
-  if (!blob) return alert('Unable to generate image.')
+  // Convert dataURL to Blob
+  const blob = await fetch(dataUrl).then(res => res.blob())
+
+  if (!blob) {
+    alert('Unable to generate image.')
+    return
+  }
 
   const file = new File([blob], 'poster.png', { type: 'image/png' })
 
@@ -755,11 +765,13 @@ async function sharePoster() {
       })
     } catch (err) {
       console.error('Share failed:', err)
+      alert('Sharing failed. Please try again.')
     }
   } else {
     alert('Sharing not supported on this device.')
   }
 }
+
 
 
 function handleProfileChange(e) {
@@ -985,7 +997,7 @@ defineExpose({
 /* Mobile specific styles */
 @media (max-width: 768px) {
   .canvas-wrapper {
-    padding: 5px;
+    padding: 2px;
   }
   
   .floating-toolbar {

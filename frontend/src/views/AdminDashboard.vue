@@ -1,6 +1,7 @@
 <template>
   <div>
-    <AdminNavbar />
+    <AdminNavbar @open-generate-modal="openGenerateModal" />
+    <GenerateVipCodeModal ref="vipModalRef" />
     <div class="container py-5">
       <!-- Header -->
       <div
@@ -159,7 +160,7 @@ import axios from "axios";
 import { toast } from "vue3-toastify";
 import AdminNavbar from "../components/AdminNavbar.vue";
 import PosterPreview from "../components/PosterPreview.vue";
-
+import GenerateVipCodeModal from "../components/GenerateVipCodeModal.vue";
 const API = import.meta.env.VITE_API_URL;
 
 // State
@@ -171,6 +172,7 @@ const imageFile = ref(null);
 const currentTemplateId = ref(null);
 const showDeleteConfirm = ref(false);
 const confirmDeleteId = ref(null);
+const vipModalRef = ref(null)
 
 const form = ref({
   label: "",
@@ -213,6 +215,18 @@ const modalTemplateDetails = computed(() => {
       : fallback?.image || "",
   };
 });
+
+import { nextTick } from 'vue'
+
+function openGenerateModal() {
+  nextTick(() => {
+    if (vipModalRef.value?.open) {
+      vipModalRef.value.open()
+    } else {
+      toast.error("Modal not available yet.")
+    }
+  })
+}
 
 // Methods
 function getFullImageUrl(path) {

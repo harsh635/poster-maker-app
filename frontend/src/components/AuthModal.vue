@@ -102,9 +102,9 @@ form input.form-control {
   margin-bottom: 12px;
 }
 form input.form-control:focus {
-  border-color: #0d6efd;
+  border-color: #0E5D39;
   outline: none;
-  box-shadow: 0 0 0 2px rgba(13,110,253,0.25);
+  box-shadow: 0 0 0 2px #0c4f30;
 }
 
 form .form-label {
@@ -194,7 +194,7 @@ form input[type="file"] {
 
 form input:focus {
   outline: none;
-  border-color: #007bff;
+  border-color: #0E5D39;
 }
 
 form button {
@@ -210,7 +210,7 @@ form button {
 }
 
 form button:hover {
-  background-color: #0056b3;
+  background-color: #0c4f30;
 }
 
 p {
@@ -237,7 +237,7 @@ p:hover {
 }
 
 .close-btn:hover {
-  color: #007bff;
+  color: #0c4f30;
 }
 
 @media (max-width: 768px) {

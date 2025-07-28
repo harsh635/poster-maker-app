@@ -59,7 +59,7 @@
     <span>Download</span>
   </button>
 
-  <button class="icon-button" @click="posterRef?.sharePoster()" title="Share Poster">
+  <button class="icon-button" @click="requireSubscription(() => posterRef?.sharePoster())" title="Share Poster">
     <i class="fas fa-share-alt"></i>
     <span>Share</span>
   </button>
@@ -657,8 +657,9 @@ onBeforeUnmount(() => {
   }
 
   .modal-content {
-    max-width: 100%;
-    max-height: 100%;
+    max-width: 98vw;  /* Nearly full viewport width */
+    max-height: 99vh; /* Nearly full viewport height */
+    padding: 0.25rem; 
   }
 
   .poster-wrapper {
