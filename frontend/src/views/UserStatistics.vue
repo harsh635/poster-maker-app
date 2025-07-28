@@ -62,6 +62,8 @@
               <td>{{ user.email }}</td>
               <td>{{ user.mobile }}</td>
               <td>{{ user.address }}</td>
+               <td>{{ user.post }}</td>
+                <td>{{ user.description }}</td>
 <td>
   <span v-if="user.is_subscribed" class="text-success fw-semibold">Active</span>
   <span v-else class="text-muted">Not Subscribed</span>
@@ -158,8 +160,8 @@ const getImageUrl = (url) => {
 }
 
 const exportToCSV = () => {
-  const headers = ['Name', 'Email', 'Mobile', 'Address','Subscription','Expiry']
-  const rows = filteredUsers.value.map(u => [u.name, u.email, u.mobile, u.address,u.is_subscribed ? 'Yes' : 'No',
+  const headers = ['Name', 'Email', 'Mobile', 'Address', 'Post/Position', 'Description', 'Subscription','Expiry']
+  const rows = filteredUsers.value.map(u => [u.name, u.email, u.mobile, u.address, u.post, u.description ,u.is_subscribed ? 'Yes' : 'No',
   u.subscription_expiry ? formatDate(u.subscription_expiry) : ''])
 
   const csvContent = [

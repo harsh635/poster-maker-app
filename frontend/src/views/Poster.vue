@@ -5,11 +5,11 @@
   <div class="container py-5">
     <!-- FILTER -->
     <div class="d-flex justify-content-between align-items-center mb-4">
-      <h4 class="fw-semibold">All Poster Templates</h4>
+      <h4 class="fw-semibold">Select Poster Category</h4>
       <div class="position-relative">
       <i class="fas fa-filter filter-icon"></i>
       <select v-model="selectedOccasion" class="form-select filter-select">
-        <option value="">All Occasions</option>
+        <option value="">All Categories</option>
         <option v-for="occasion in occasions" :key="occasion" :value="occasion">{{ occasion }}</option>
       </select>
     </div>
@@ -31,70 +31,46 @@
     </div>
 
     <!-- MODAL -->
-    <div v-if="showModal" class="modal-overlay">
-      <div class="modal-content">
+    <div v-if="showModal" class="modal-overlay" @click.self="closeModal">
+      <div class="modal-content single-wrapper">
         <!-- Close -->
-        <button class="btn btn-close btn-sm position-absolute top-0 end-0 m-3" @click="closeModal"></button>
-
-        <!-- Form & Preview -->
-        <div class="row">
-          <!-- FORM -->
-          <div class="col-md-6">
-            <h5 class="fw-semibold mb-3">Edit Poster:</h5>
-            <input type="text" class="form-control mb-2" placeholder="Title" v-model="formData.title" />
-            <input type="text" class="form-control mb-2" placeholder="Subtitle" v-model="formData.subtitle" />
-            <input type="text" class="form-control mb-2" placeholder="Company Name" v-model="formData.name" />
-            <input type="text" class="form-control mb-2" placeholder="Phone Number" v-model="formData.phone" />
-
-           <input v-if="normalizedOccasion === 'birthday'" type="text"
-            class="form-control mb-2"
-            placeholder="Employee Name"
-            v-model="formData.employeeName" />
-
-            <label class="form-label">Upload Image</label>
-            <input type="file" class="form-control mb-2" @change="onImageUpload" />
-            <label class="form-label">Upload Logo</label>
-            <input type="file" class="form-control mb-2" @change="onLogoUpload" />
-            <label class="form-label">Select Poster Size</label>
-            <select v-model="selectedSize" class="form-select mb-2">
-             <option value="a4">A4 (2480x3508)</option>
-             <option value="instagram">Instagram (1080x1080)</option>
-             <option value="story">Story (1080x1920)</option>
-            </select>
-            <button class="btn btn-success me-2 mt-2" @click="exportAsImage" :disabled="!canExport">
-            <span v-if="isExporting">Exporting...</span>
-            <span v-else>Export as PNG</span>
-            </button>
-            <button class="btn btn-outline-primary mt-2 me-2" @click="savePosterData()">
-             Save Poster
-            </button>
-            <button class="btn btn-warning mt-2 " @click="resetVisibility">Reset Fields</button>
-
-          </div>
-          
-
+       <button class="btn btn-close btn-lg close-absolute" @click="closeModal"></button>
 
           <!-- PREVIEW -->
-          <div class="col-md-6">
-            <h5 class="fw-semibold mb-3">Live Preview:</h5>
-            <div ref="posterRef" :class="{ exporting: isExporting }">
-              <PosterPreview
-              :template="currentTemplate"
-              :templateDetails="currentTemplateDetails"
-              :data="formData"
-              :isExporting="isExporting"
-               @hideElement="field => formData[field] = false"
-              :key="currentTemplate + JSON.stringify(formData)" />
-            </div>
-          </div>
-        </div>
+           
+      <FabricPoster
+       ref="posterRef"
+  :key="`${currentTemplate}-${formData.name}-${formData.post}`"
+  :width="canvasWidth"
+  :height="canvasHeight"
+  :backgroundImage="formData.imageFileUrl || getFullImageUrl(currentTemplateDetails.image)"
+  :profileImage="getImageUrl(user?.profile_image_url)"
+  :name="formData.name"
+  :post="formData.post"
+  :description="formData.description"
+  :phone="formData.phone"
+  :title="formData.title"
+  :subtitle="formData.subtitle"
+/>
+
+    <div class="modal-footer border-top bg-white p-3 d-flex flex-column flex-md-row justify-content-center gap-2">
+  <button class="icon-button" @click="requireSubscription(() => posterRef?.exportAsPNG())" title="Download PNG">
+    <i class="fas fa-download"></i>
+    <span>Download</span>
+  </button>
+
+  <button class="icon-button" @click="posterRef?.sharePoster()" title="Share Poster">
+    <i class="fas fa-share-alt"></i>
+    <span>Share</span>
+  </button>
+</div>
       </div>
     </div>
   </div>
   </main>
-     <footer class="bg-light py-4 text-center text-muted small border-top">
-    © 2025 TechGo, Inc. All rights reserved.
-  </footer>
+<footer class="footer bg-light py-3 text-center text-muted small border-top">
+     © 2025 Johar Jharkhand. All Right Reserved
+    </footer>
   </div>
 
 
@@ -125,10 +101,36 @@ import { toast } from 'vue3-toastify'
 import Navbar from '../components/Navbar.vue'
 import SubscriptionModal from '../components/SubscriptionModal.vue'
 import { useUser } from '../useUser'
+import { onBeforeUnmount } from 'vue'
+import FabricPoster from '../components/FabricPoster.vue'
 
 
 const API_BASE = import.meta.env.VITE_API_URL
 const isExporting = ref(false)
+
+// Responsive canvas dimensions
+const windowWidth = ref(typeof window !== 'undefined' ? window.innerWidth : 1024)
+const canvasWidth = computed(() => {
+  if (windowWidth.value < 768) {
+    return Math.min(windowWidth.value - 60, 400)
+  } else if (windowWidth.value < 1024) {
+    return 450
+  }
+  return 500
+})
+
+const canvasHeight = computed(() => {
+  if (windowWidth.value < 768) {
+    return Math.min(windowWidth.value - 60, 400) // Square for mobile
+  } else if (windowWidth.value < 1024) {
+    return 450
+  }
+  return 500
+})
+
+function handleResize() {
+  windowWidth.value = window.innerWidth
+}
 
 const navbarRef = ref()
 const showModal = ref(false)
@@ -140,7 +142,6 @@ const currentTemplateDetails = ref({})
 const loading = ref(false)
 const { user, setUser } = useUser()
 const subscriptionModalRef = ref()
-
 const occasions = computed(() => [...new Set(templates.value.map(t => t.occasion))])
 const filteredTemplates = computed(() =>
   !selectedOccasion.value
@@ -165,13 +166,17 @@ const formData = ref({
   subtitle: '',
   name: '',
   phone: '',
+  post:'',
+  description:'',
   employeeName: '',
   imageFileUrl: '',
+  profileFileUrl:'',
   logoFileUrl: '',
   showLogo: true,
   showName: true,
   showPhone: true,
-  showEmployeeName: true 
+  showEmployeeName: true ,
+  showProfile: true
 })
 
 const defaultTitleMap = ref({})
@@ -190,26 +195,60 @@ function openModal(templateId) {
   currentTemplateDetails.value = found || {}
   showModal.value = true
   const rawImageUrl = imageUrlMap.value[templateId]
+   
+  document.body.style.overflow = 'hidden'
 
   formData.value = {
     title: defaultTitleMap.value[templateId] || '',
     subtitle: defaultSubtitleMap.value[templateId] || '',
-    name: '',
-    phone: '',
+    
+    name: user.value?.name || '',
+    phone: user.value?.mobile || '',
+    post: user.value?.post || '',
+    description: user.value?.description || '',
+    profileFileUrl:user.value?.profile_image_url || '',
     employeeName: '',
     imageFileUrl: '',
     logoFileUrl: '',
     showLogo: true,
     showName: true,
     showPhone: true,
-    showEmployeeName: true 
+    showEmployeeName: true ,
+     showProfile: true
   }
+  console.log("📞 Loaded mobile number:", user.value?.mobile)
+console.log("📝 Final formData:", JSON.parse(JSON.stringify(formData.value)))
+
     if (rawImageUrl?.startsWith('data:image')) {
     formData.value.imageFileUrl = rawImageUrl
   } else if (rawImageUrl) {
     convertImageUrlToBase64(rawImageUrl).then(base64 => {
       formData.value.imageFileUrl = base64
     })
+  }
+}
+
+function requireSubscription(action) {
+  if (!user.value.is_subscribed) {
+    subscriptionModalRef.value?.open?.()
+    return
+  }
+  action()
+}
+
+function onSubscribed(updatedUser) {
+  setUser(updatedUser)
+}
+
+function onProfileUpload(event) {
+  const file = event.target.files[0]
+  if (file) {
+    const reader = new FileReader()
+    reader.onload = () => {
+      formData.value.profileFileUrl = getFullImageUrl(user.value?.image || '')
+
+    }
+    reader.readAsDataURL(file)
   }
 }
 
@@ -234,6 +273,7 @@ function convertImageUrlToBase64(url) {
 
 function closeModal() {
   showModal.value = false
+  document.body.style.overflow = ''
 }
 
 function resetVisibility() {
@@ -252,6 +292,12 @@ function getFullImageUrl(path) {
   if (path.startsWith('http') || path.startsWith('data:')) return path
   return `${API_BASE.replace(/\/$/, '')}/${path.replace(/^\//, '')}`
 }
+
+const getImageUrl = (url) => {
+  if (!url) return ''
+  return url.startsWith('http') ? url : `${API_BASE}${url}`
+}
+
 
 function onImageUpload(event) {
   const file = event.target.files[0]
@@ -407,19 +453,15 @@ onMounted(() => {
     return router.push('/')
   }
 
-  if (!user.value.is_subscribed) {
-    subscriptionModalRef.value?.open?.()
-    return router.push('/')
-  }
-
+  window.addEventListener('resize', handleResize)
   fetchTemplates()
 })
 
 
-function onSubscribed(updatedUser) {
-  setUser(updatedUser)
-}
-
+onBeforeUnmount(() => {
+  document.body.style.overflow = ''
+  window.removeEventListener('resize', handleResize)
+})
 
 </script>
 
@@ -436,28 +478,46 @@ function onSubscribed(updatedUser) {
 /* Modal Overlay */
 .modal-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  inset: 0;
   background: rgba(10, 10, 10, 0.4);
   backdrop-filter: blur(6px);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 1000;
+  overflow: auto;
+  padding: 1rem;
 }
 
 /* Modal Box */
 .modal-content {
   background: white;
   border-radius: 12px;
-  padding: 2rem;
-  width: 90%;
-  max-width: 1000px;
+  padding: 1rem;
+  width: auto;
+  max-width: 95vw;
+  max-height: 95vh;
   position: relative;
+  box-shadow: none;
+  display: flex;
+  justify-content: center;
+  align-items: center;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+  overflow: visible;
 }
+
+
+/* Close button outside the top-right of the white box */
+.close-absolute {
+  color: black;
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  z-index: 1100;
+  padding: 0.4rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
   main {
     flex: 1;
   }
@@ -536,6 +596,36 @@ function onSubscribed(updatedUser) {
 .poster-box.exporting .close-btn {
   display: none !important;
 }
+.footer {
+  background-color: #e9f3eb;
+  color: #555;
+  font-weight: 500;
+  padding: 1rem;
+  border-top: 1px solid #cce5d2;
+}
+.icon-button {
+  background: #0E5D39;
+  color: white;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-size: 15px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  font-weight: 500;
+}
+
+.icon-button i {
+  font-size: 16px;
+}
+
+.icon-button:hover {
+  background:  #0c4f30;
+}
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .container.py-5 {
@@ -562,25 +652,64 @@ function onSubscribed(updatedUser) {
     margin-bottom: 1rem;
   }
 
+  .modal-overlay {
+    padding: 10px;
+  }
+
   .modal-content {
+    max-width: 100%;
+    max-height: 100%;
+  }
+
+  .poster-wrapper {
     padding: 1rem;
-    overflow-y: auto;
-    max-height: 95vh;
+    max-width: 100%;
+    max-height: 100%;
   }
 
-  .modal-content .row {
-    flex-direction: column;
-  }
-
-  .modal-content .col-md-6 {
-    width: 100%;
-    margin-bottom: 1rem;
+  .close-absolute {
+    top: -5px;
+    right: -5px;
+    padding: 0.3rem;
   }
 
   footer {
     font-size: 0.8rem;
     padding: 1rem 0;
   }
+  
+  .modal-footer {
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  .modal-content{
+    padding:  0.75rem;
+  }
+   .icon-button {
+    width: 100%;
+    justify-content: center;
+  }
 }
 
+@media (max-width: 480px) {
+  .modal-overlay {
+    padding: 5px;
+  }
+  
+  .poster-wrapper {
+    padding: 0.5rem;
+    border-radius: 8px;
+  }
+  
+  .close-absolute {
+    top: 0;
+    right: 0;
+    padding: 0.2rem;
+  }
+  .modal-content{
+    padding: 0.5 rem;
+    border-radius: 10px;
+  }
+}
 </style>

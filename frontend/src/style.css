@@ -3,9 +3,18 @@
   line-height: 1.5;
   font-weight: 400;
 
+  --green-dark: #0E5D39;
+  --green-light: #15784B;
+  --text-light: #ffffff;
+  --text-muted: rgba(255, 255, 255, 0.87);
+  --btn-bg: #15784B;
+  --btn-hover: #106c40;
+  --link-color: #aef7d2;
+  --link-hover: #d4ffe7;
+
   color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+  color: var(--text-muted);
+  background-color: var(--green-dark);
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -15,11 +24,11 @@
 
 a {
   font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
+  color: var(--link-color);
+  text-decoration: none;
 }
 a:hover {
-  color: #535bf2;
+  color: var(--link-hover);
 }
 
 body {
@@ -28,11 +37,14 @@ body {
   place-items: center;
   min-width: 320px;
   min-height: 100vh;
+  background-color: var(--green-dark);
+  color: var(--text-light);
 }
 
 h1 {
   font-size: 3.2em;
   line-height: 1.1;
+  color: var(--text-light);
 }
 
 button {
@@ -42,12 +54,13 @@ button {
   font-size: 1em;
   font-weight: 500;
   font-family: inherit;
-  background-color: #1a1a1a;
+  background-color: var(--btn-bg);
+  color: white;
   cursor: pointer;
-  transition: border-color 0.25s;
+  transition: background-color 0.25s, border-color 0.25s;
 }
 button:hover {
-  border-color: #646cff;
+  background-color: var(--btn-hover);
 }
 button:focus,
 button:focus-visible {
@@ -56,6 +69,9 @@ button:focus-visible {
 
 .card {
   padding: 2em;
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  color: white;
 }
 
 #app {
@@ -65,15 +81,44 @@ button:focus-visible {
   text-align: center;
 }
 
+/* Light mode overrides */
 @media (prefers-color-scheme: light) {
   :root {
-    color: #213547;
-    background-color: #ffffff;
+    --text-light: #213547;
+    --green-dark: #ffffff;
+    --btn-bg: #0E5D39;
+    --btn-hover: #15784B;
+    --link-color: #0E5D39;
+    --link-hover: #106c40;
+
+    color: var(--text-light);
+    background-color: var(--green-dark);
   }
-  a:hover {
-    color: #747bff;
+
+  body {
+    background-color: var(--green-dark);
+    color: var(--text-light);
   }
+
   button {
-    background-color: #f9f9f9;
+    background-color: var(--btn-bg);
+    color: white;
+  }
+
+  button:hover {
+    background-color: var(--btn-hover);
+  }
+
+  a {
+    color: var(--link-color);
+  }
+
+  a:hover {
+    color: var(--link-hover);
+  }
+
+  .card {
+    background-color: #f2fef6;
+    color: var(--text-light);
   }
 }

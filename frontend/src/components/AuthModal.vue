@@ -2,7 +2,7 @@
   <div class="modal-overlay">
     <div class="modal-box">
       <div class="left-panel">
-        <img src="/templates/banner.png" alt="Auth illustration" />
+        <img src="/templates/Banner Johar.png" alt="Auth illustration" />
       </div>
       <div class="right-panel">
         <button class="close-btn" @click="$emit('close')">✕</button>
@@ -11,6 +11,8 @@
           <template v-if="mode === 'register'">
             <input type="text" v-model="form.name" class="form-control mb-2" placeholder="Full Name" required />
             <input type="text" v-model="form.address" class="form-control mb-2" placeholder="Address" required />
+            <input type="text" v-model="form.post" class="form-control mb-2" placeholder="Post/Position" required />
+            <input type="text" v-model="form.description" class="form-control mb-2" placeholder="Description" required />
             <input type="number" v-model="form.mobile" class="form-control mb-2" placeholder="Mobile No." required />
             <label class="form-label fw-semibold">Upload Profile Photo</label>
             <input type="file" @change="onImageChange" class="form-control mb-2" accept="image/*" required/>
@@ -37,7 +39,7 @@ const { setUser } = useUser()
 const props = defineProps({ mode: String })
 const emit = defineEmits(['close', 'switch'])
 
-const form = ref({ name: '', address: '', mobile: '', email: '', password: '', imageFile: null })
+const form = ref({ name: '', address: '', post: '', description: '', mobile: '', email: '', password: '', imageFile: null })
 
 function onImageChange(e) { form.value.imageFile = e.target.files[0] }
 
@@ -62,9 +64,11 @@ async function onSubmit() {
       data.append(k, v)
       }
       })
+      console.log("Form being submitted:", form.value)
       const res = await axios.post(`${import.meta.env.VITE_API_URL}/auth/register`, data)
       setTimeout(() => {
       toast.success('Registration successful! Please login.')
+
       }, 100)
       emit('switch') 
     
@@ -134,7 +138,7 @@ form .form-label {
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
   max-width: 850px;
   width: 95%;
-  overflow: hidden;
+  max-height: 90vh;
   z-index: 1060;
 }
 
@@ -160,7 +164,8 @@ form .form-label {
   position: relative;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-start;
+  overflow-y: auto;
 }
 
 .right-panel h2 {
@@ -194,14 +199,14 @@ form input:focus {
 
 form button {
   padding: 10px 16px;
-  background-color: #007bff;
+  background-color: #0E5D39;
   color: white;
+  transition: background-color 0.3s ease;
   font-weight: 600;
   font-size: 1rem;
   border: none;
   border-radius: 6px;
   cursor: pointer;
-  transition: background-color 0.2s;
 }
 
 form button:hover {

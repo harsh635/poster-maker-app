@@ -11,7 +11,7 @@ const routes = [
   {
     path: '/posters',
     component: Poster,
-    meta: { requiresAuth: true, requiresSubscription: true }
+    meta: { requiresAuth: true}
   },
   { path: '/admin/login', component: AdminLogin },
   {
@@ -36,7 +36,6 @@ router.beforeEach((to, from, next) => {
   const { user, admin } = useUser()
 
   const requiresAuth = to.meta.requiresAuth
-  const requiresSub = to.meta.requiresSubscription
 
   // Allow open access to admin login page
   if (to.path === '/admin/login') {
@@ -63,9 +62,6 @@ router.beforeEach((to, from, next) => {
     return next('/')
   }
 
-  if (requiresSub && !user.value?.is_subscribed) {
-    return next('/')
-  }
 
   next()
 })

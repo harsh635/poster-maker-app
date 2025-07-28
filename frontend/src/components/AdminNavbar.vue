@@ -1,29 +1,45 @@
 <template>
-  <nav class="navbar navbar-expand-lg bg-light px-4 py-3 shadow-sm">
-    <div class="container-fluid fw-bold d-flex justify-content-between align-items-center">
+  <nav class="navbar navbar-expand-lg bg-light px-3 py-3 shadow-sm">
+    <div class="container-fluid fw-bold">
       <router-link to="/admin/dashboard" class="navbar-brand">🛠 Admin Panel</router-link>
 
-      <div class="d-flex align-items-center gap-3">
-        <router-link to="/admin/dashboard" class="nav-link px-2">Dashboard</router-link>
-        <router-link v-if="isSuperAdmin" to="/admin/users" class="nav-link px-2">User Statistics</router-link>
+      <!-- Hamburger Toggle Button -->
+      <button
+        class="navbar-toggler"
+        type="button"
+        @click="toggleCollapse"
+        aria-label="Toggle navigation"
+      >
+        <span class="navbar-toggler-icon"></span>
+      </button>
 
-        <!-- Profile Dropdown -->
-        <div class="dropdown position-relative" v-if="admin">
-          <img
-            :src="DEFAULT_AVATAR"
-            class="profile-pic"
-            @click="toggleDropdown"
-          />
-          <transition name="fade">
-            <ul v-if="showDropdown" class="dropdown-menu show">
-              <li><button class="dropdown-item" @click="logout">Logout</button></li>
-            </ul>
-          </transition>
-        </div>
+      <!-- Collapsible Content -->
+      <div class="collapse navbar-collapse" :class="{ show: isCollapsed }">
+        <ul class="navbar-nav ms-auto align-items-center gap-lg-3 gap-2">
+          <li class="nav-item">
+            <router-link to="/admin/dashboard" class="nav-link">Dashboard</router-link>
+          </li>
+          <li class="nav-item" v-if="isSuperAdmin">
+            <router-link to="/admin/users" class="nav-link">User Statistics</router-link>
+          </li>
+          <li class="nav-item dropdown" v-if="admin">
+            <img
+              :src="DEFAULT_AVATAR"
+              class="profile-pic"
+              @click="toggleDropdown"
+            />
+            <transition name="fade">
+              <ul v-if="showDropdown" class="dropdown-menu show mt-2">
+                <li><button class="dropdown-item" @click="logout">Logout</button></li>
+              </ul>
+            </transition>
+          </li>
+        </ul>
       </div>
     </div>
   </nav>
 </template>
+
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
@@ -38,6 +54,12 @@ const { admin, setAdmin } = useUser()
 
 // Helpers
 const isSuperAdmin = computed(() => admin.value?.role === 'super')
+
+const isCollapsed = ref(false)
+
+function toggleCollapse() {
+  isCollapsed.value = !isCollapsed.value
+}
 
 function toggleDropdown() {
   showDropdown.value = !showDropdown.value
@@ -75,10 +97,39 @@ document.addEventListener('click', (e) => {
   border: 2px solid #007bff;
 }
 
+/* Bootstrap hamburger icon fallback */
+.navbar-toggler {
+  border: none;
+  background: transparent;
+}
+.navbar-toggler-icon {
+  display: inline-block;
+  width: 24px;
+  height: 2px;
+  background-color: #333;
+  position: relative;
+}
+.navbar-toggler-icon::before,
+.navbar-toggler-icon::after {
+  content: "";
+  position: absolute;
+  width: 24px;
+  height: 2px;
+  background-color: #333;
+  left: 0;
+}
+.navbar-toggler-icon::before {
+  top: -8px;
+}
+.navbar-toggler-icon::after {
+  top: 8px;
+}
+
+/* Dropdown */
 .dropdown-menu {
   position: absolute;
   right: 0;
-  top: 50px;
+  top: 60px;
   background: white;
   border: 1px solid #ddd;
   border-radius: 6px;
@@ -101,11 +152,43 @@ document.addEventListener('click', (e) => {
   background-color: #f8f9fa;
 }
 
+/* Transitions */
 .fade-enter-active, .fade-leave-active {
   transition: opacity 0.2s ease;
 }
 .fade-enter-from, .fade-leave-to {
   opacity: 0;
 }
+
+/* Responsive Tweaks */
+@media (max-width: 768px) {
+  .navbar-nav {
+    flex-direction: column;
+    align-items: flex-start !important;
+    padding-top: 1rem;
+  }
+
+  .navbar-nav .nav-item {
+    width: 100%;
+  }
+
+  .navbar-nav .nav-link {
+    width: 100%;
+    padding: 0.5rem 0;
+  }
+
+  .dropdown-menu {
+    top: auto;
+    position: relative;
+    box-shadow: none;
+    border: none;
+    padding-left: 0.5rem;
+  }
+
+  .profile-pic {
+    margin-top: 0.5rem;
+  }
+}
+
 
 </style>

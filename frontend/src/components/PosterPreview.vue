@@ -22,7 +22,7 @@
       </div>
 
       <!-- Main Content -->
-      <div class="poster-content">
+      <div v-if="normalizedOccasion !== 'good morning'" class="poster-content">
         <h1>{{ displayTitle }}</h1>
         <p>{{ displaySubtitle }}</p>
       </div>
@@ -276,5 +276,40 @@ function hide(field) {
   height: 100px;
 }
 
+/* Live Preview adjustments (non-exporting) on small screens */
+@media (max-width: 768px) {
+  .poster-box:not(.exporting) {
+    padding: 20px 12px;
+  }
+
+  .poster-box:not(.exporting) .poster-content h1 {
+    font-size: 1.6rem;
+  }
+
+  .poster-box:not(.exporting) .poster-content p {
+    font-size: 1rem;
+  }
+
+  .poster-box:not(.exporting) .logo-circle,
+  .poster-box:not(.exporting) .logo-placeholder {
+    width: 45px;
+    height: 45px;
+  }
+
+  .poster-box:not(.exporting) .employee-name,
+  .poster-box:not(.exporting) .bottom-left,
+  .poster-box:not(.exporting) .bottom-right {
+    font-size: 0.8rem;
+    padding: 4px 8px;
+  }
+
+  .poster-box:not(.exporting) .close-btn {
+    width: 18px;
+    height: 18px;
+    font-size: 12px;
+    top: -6px;
+    right: -6px;
+  }
+}
 
 </style>
