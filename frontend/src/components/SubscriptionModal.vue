@@ -84,6 +84,7 @@ async function subscribe() {
             email: props.user.email
           })
 
+          const expiry = verifyRes.data.expiry
           const updatedUser = { ...props.user, is_subscribed: true, subscription_expiry: expiry,
             is_vip: false,
             vip_expiry: null }
