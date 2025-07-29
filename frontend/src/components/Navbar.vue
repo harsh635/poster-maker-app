@@ -24,7 +24,7 @@
             <router-link to="/admin/login" class="nav-link">Admin Section</router-link>
           </li>
           <li class="nav-item">
-            <a href="/app-debug.apk" download class="nav-link">📱 Download App</a>
+            <a href="/JoharJharkhand.apk" download class="nav-link">📱 Download App</a>
           </li>
 
           <!-- User Dropdown -->
