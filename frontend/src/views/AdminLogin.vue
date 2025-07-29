@@ -4,7 +4,10 @@
       <h4 class="text-center mb-4">🔐 Admin Login</h4>
       <input v-model="username" class="form-control mb-3" placeholder="Username" />
       <input v-model="password" type="password" class="form-control mb-3" placeholder="Password" />
-      <button class="btn btn-primary w-100" @click="login">Login</button>
+      <button class="btn btn-primary w-100 custom-green-btn" :disabled="isSubmitting" @click="login">
+        <span v-if="isSubmitting">Please wait...</span>
+        <span v-else>Login</span>
+      </button>
     </div>
   </div>
 </template>
@@ -20,8 +23,10 @@ const router = useRouter()
 const username = ref('')
 const password = ref('')
 const { setAdmin } = useUser()
+const isSubmitting = ref(false)
 
 async function login() {
+  isSubmitting.value = true
   try {
     const response = await axios.post(`${import.meta.env.VITE_API_URL}/admin/login`, {
       username: username.value,
@@ -43,6 +48,9 @@ async function login() {
     }, 1000)
   } catch (err) {
     toast.error('Invalid credentials')
+  }
+  finally {
+    isSubmitting.value = false
   }
 }
 </script>
@@ -67,5 +75,16 @@ async function login() {
 
 input::placeholder {
   font-size: 0.95rem;
+}
+.custom-green-btn {
+  background-color: #0E5D39 !important;
+  border-color: #0E5D39 !important;
+  color: #fff !important;
+}
+
+.custom-green-btn:hover,
+.custom-green-btn:focus {
+  background-color: #0c4f30 !important;
+  border-color: #0c4f30 !important;
 }
 </style>

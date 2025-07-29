@@ -19,7 +19,10 @@
           </template>
           <input type="email" v-model="form.email" class="form-control mb-2" placeholder="Email" required />
           <input type="password" v-model="form.password" class="form-control mb-2" placeholder="Password" required />
-          <button type="submit">{{ mode === 'login' ? 'Login' : 'Register' }}</button>
+          <button type="submit" :disabled="isSubmitting">
+             <span v-if="isSubmitting">Please wait...</span>
+             <span v-else>{{ mode === 'login' ? 'Login' : 'Register' }}</span>
+          </button>
         </form>
         <p @click="$emit('switch')">
           {{ mode === 'login' ? "Don't have an account? Register" : "Have an account? Login" }}
@@ -38,12 +41,14 @@ import { useUser } from '../useUser'
 const { setUser } = useUser()
 const props = defineProps({ mode: String })
 const emit = defineEmits(['close', 'switch'])
+const isSubmitting = ref(false)
 
 const form = ref({ name: '', address: '', post: '', description: '', mobile: '', email: '', password: '', imageFile: null })
 
 function onImageChange(e) { form.value.imageFile = e.target.files[0] }
 
 async function onSubmit() {
+   isSubmitting.value = true
   try {
     if (props.mode === 'login') {
       const res = await axios.post(`${import.meta.env.VITE_API_URL}/auth/login`, {
@@ -86,6 +91,8 @@ async function onSubmit() {
     } else {
       toast.error(`${msg}`)
     }
+  }finally {
+    isSubmitting.value = false
   }
 }
 </script>

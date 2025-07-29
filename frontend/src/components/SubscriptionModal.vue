@@ -11,7 +11,7 @@
           class="form-control mb-2"
         />
         <button class="btn btn-success w-100 custom-green-btn" @click="applyVipCode" :disabled="isCheckingVip || isProcessingSubscription">
-          {{ iisCheckingVip ? 'Checking...' : 'Apply VIP Code' }}
+          {{ isCheckingVip ? 'Checking...' : 'Apply VIP Code' }}
         </button>
       </div>
       <button class="btn btn-outline-secondary mt-2" @click="close">Cancel</button>

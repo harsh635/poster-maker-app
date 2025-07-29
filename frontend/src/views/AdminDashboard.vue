@@ -41,9 +41,16 @@
           </div>
         </div>
       </div>
+      <!-- LOADING MESSAGE -->
+<div v-if="loading" class="text-center my-5">
+  <div class="spinner-border text-primary mb-3" role="status">
+    <span class="visually-hidden">Loading...</span>
+  </div>
+  <p class="text-muted">Loading templates, please wait...</p>
+</div>
 
       <!-- Poster Grid -->
-      <div class="row g-4 text-center">
+      <div v-else class="row g-4 text-center">
         <div v-for="t in filteredTemplates" :key="t.id" class="col-md-3">
           <div
             class="template-card p-3 rounded shadow-sm h-100 border position-relative"
@@ -173,7 +180,7 @@ const currentTemplateId = ref(null);
 const showDeleteConfirm = ref(false);
 const confirmDeleteId = ref(null);
 const vipModalRef = ref(null)
-
+const loading = ref(false)
 const form = ref({
   label: "",
   occasion: selectedKPI.value,
@@ -235,11 +242,14 @@ function getFullImageUrl(path) {
 }
 
 async function fetchTemplates() {
+  loading.value = true
   try {
     const res = await axios.get(`${API}/templates`);
     templates.value = res.data;
   } catch (err) {
     toast.error("Failed to load templates.");
+  }finally{
+    loading.value = false
   }
 }
 

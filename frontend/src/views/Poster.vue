@@ -14,9 +14,16 @@
       </select>
     </div>
     </div>
+    <!-- LOADING MESSAGE -->
+<div v-if="loading" class="text-center my-5">
+  <div class="spinner-border text-primary mb-3" role="status">
+    <span class="visually-hidden">Loading...</span>
+  </div>
+  <p class="text-muted">Loading templates, please wait...</p>
+</div>
 
     <!-- POSTER GRID -->
-    <div class="row g-4 text-center">
+    <div v-else class="row g-4 text-center">
       <div
         class="col-md-3"
         v-for="template in filteredTemplates"
@@ -75,7 +82,7 @@
 
 
 <!-- Full-Screen SVG Loader -->
-<div v-if="loading" class="fullscreen-loader">
+<!-- <div v-if="loading" class="fullscreen-loader">
   <svg class="svg-spinner" viewBox="0 0 50 50">
     <circle
       class="path"
@@ -86,7 +93,7 @@
       stroke-width="5"
     />
   </svg>
-</div>
+</div> -->
 <SubscriptionModal ref="subscriptionModalRef" :user="user" @subscribed="onSubscribed" />
 
 
@@ -405,6 +412,7 @@ async function exportAsImage() {
 
 
 async function fetchTemplates() {
+  loading.value = true
   try {
     const res = await axios.get(`${API_BASE}/templates`)
     templates.value = res.data
@@ -416,6 +424,9 @@ async function fetchTemplates() {
     })
   } catch (err) {
     console.error('Failed to fetch templates:', err)
+  }
+  finally {
+    loading.value = false
   }
 }
 
