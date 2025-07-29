@@ -725,6 +725,11 @@ function exportAsPNG() {
     quality: 1
   })
 
+  const base64 = dataURL.split(",")[1];
+    if (window.AndroidInterface && window.AndroidInterface.saveBase64Image) {
+    window.AndroidInterface.saveBase64Image(base64);
+    // Optionally show a toast or confirm to the user
+  } else {
   // Download automatically
   const link = document.createElement('a')
   link.href = dataURL
@@ -732,6 +737,7 @@ function exportAsPNG() {
   document.body.appendChild(link)
   link.click()
   document.body.removeChild(link)
+}
 }
 
 async function sharePoster() {
@@ -746,6 +752,14 @@ async function sharePoster() {
     multiplier: 2 // optional for higher resolution
   })
 
+  const message = "Check out this poster I made!";
+  const subject = "My Poster";
+
+   if (window.AndroidInterface && window.AndroidInterface.shareText) {
+    window.AndroidInterface.shareText(message, subject);
+    return;
+  }
+
   // Convert dataURL to Blob
   const blob = await fetch(dataUrl).then(res => res.blob())
 
@@ -759,8 +773,8 @@ async function sharePoster() {
   if (navigator.canShare && navigator.canShare({ files: [file] })) {
     try {
       await navigator.share({
-        title: 'My Poster',
-        text: 'Check out this poster I made!',
+        title:  subject,
+        text: message,
         files: [file]
       })
     } catch (err) {
